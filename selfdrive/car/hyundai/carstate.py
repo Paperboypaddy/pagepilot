@@ -80,7 +80,7 @@ class CarState(CarStateBase):
 
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
     # as this seems to be standard over all cars, but is not the preferred method.
-    gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
+    gear = cp.vl["CLU15"]["CF_Clu_Gear"]
 
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
