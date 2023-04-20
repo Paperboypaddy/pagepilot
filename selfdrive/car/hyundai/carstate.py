@@ -12,15 +12,17 @@ class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
+
     self.shifter_values = can_define.dv["CLU15"]["CF_Clu_Gear"]
 
 
   def update(self, cp, cp_cam):
     ret = car.CarState.new_message()
 
-    ret.doorOpen = False
+    ret.doorOpen = any([cp.vl["CGW1"]["CF_Gway_DrvDrSw"], cp.vl["CGW1"]["CF_Gway_AstDrSw"],
+                        cp.vl["CGW2"]["CF_Gway_RLDrSw"], cp.vl["CGW2"]["CF_Gway_RRDrSw"]])
 
-    ret.seatbeltUnlatched = False
+    ret.seatbeltUnlatched = cp.vl["CGW1"]["CF_Gway_DrvSeatBeltSw"] == 0
 
     ret.wheelSpeeds = self.get_wheel_speeds(
       cp.vl["WHL_SPD11"]["WHL_SPD_FL"],
@@ -78,7 +80,7 @@ class CarState(CarStateBase):
 
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
     # as this seems to be standard over all cars, but is not the preferred method.
-    gear = cp.vl["CLU15"]["CF_Clu_Gear"]
+    gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
 
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
@@ -113,8 +115,14 @@ class CarState(CarStateBase):
 
       ("CF_Gway_DrvSeatBeltInd", "CGW4"),
 
+      ("CF_Gway_DrvSeatBeltSw", "CGW1"),
+      ("CF_Gway_DrvDrSw", "CGW1"),       # Driver Door
+      ("CF_Gway_AstDrSw", "CGW1"),       # Passenger door
       ("CF_Gway_RLDrSw", "CGW2"),        # Rear reft door
       ("CF_Gway_RRDrSw", "CGW2"),        # Rear right door
+      ("CF_Gway_TurnSigLh", "CGW1"),
+      ("CF_Gway_TurnSigRh", "CGW1"),
+      ("CF_Gway_ParkBrakeSw", "CGW1"),
 
       ("CYL_PRES", "ESP12"),
 
@@ -157,11 +165,32 @@ class CarState(CarStateBase):
       ("TCS15", 10),
       ("CLU11", 50),
       ("ESP12", 100),
+      ("CGW1", 10),
       ("CGW2", 5),
       ("CGW4", 5),
       ("WHL_SPD11", 50),
       ("SAS11", 100),
     ]
+
+    if not CP.openpilotLongitudinalControl:
+      signals += [
+        ("MainMode_ACC", "SCC11"),
+        ("VSetDis", "SCC11"),
+        ("SCCInfoDisplay", "SCC11"),
+        ("ACC_ObjDist", "SCC11"),
+        ("ACCMode", "SCC12"),
+      ]
+
+      checks += [
+        ("SCC11", 50),
+        ("SCC12", 50),
+      ]
+
+
+      signals += [
+        ("AEB_CmdAct", "SCC12"),
+        ("CF_VSM_Warn", "SCC12"),
+      ]
 
     if CP.enableBsm:
       signals += [
@@ -185,7 +214,6 @@ class CarState(CarStateBase):
         ("EMS12", 100),
         ("EMS16", 100),
       ]
-
 
     signals.append(("CF_Clu_Gear", "CLU15"))
     checks.append(("CLU15", 5))
