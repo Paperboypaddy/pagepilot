@@ -4,7 +4,7 @@ from cereal import car
 from common.conversions import Conversions as CV
 from opendbc.can.parser import CANParser
 from opendbc.can.can_define import CANDefine
-from selfdrive.car.hyundai.values import DBC, STEER_THRESHOLD, FEATURES, EV_CAR, HYBRID_CAR
+from selfdrive.car.hyundai.values import DBC, STEER_THRESHOLD, HYBRID_CAR
 from selfdrive.car.interfaces import CarStateBase
 
 
@@ -12,22 +12,15 @@ class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
-
-    if self.CP.carFingerprint in FEATURES["use_cluster_gears"]:
-      self.shifter_values = can_define.dv["CLU15"]["CF_Clu_Gear"]
-    elif self.CP.carFingerprint in FEATURES["use_tcu_gears"]:
-      self.shifter_values = can_define.dv["TCU12"]["CUR_GR"]
-    else:  # preferred and elect gear methods use same definition
-      self.shifter_values = can_define.dv["LVR12"]["CF_Lvr_Gear"]
+    self.shifter_values = can_define.dv["CLU15"]["CF_Clu_Gear"]
 
 
   def update(self, cp, cp_cam):
     ret = car.CarState.new_message()
 
-    ret.doorOpen = any([cp.vl["CGW1"]["CF_Gway_DrvDrSw"], cp.vl["CGW1"]["CF_Gway_AstDrSw"],
-                        cp.vl["CGW2"]["CF_Gway_RLDrSw"], cp.vl["CGW2"]["CF_Gway_RRDrSw"]])
+    ret.doorOpen = False
 
-    ret.seatbeltUnlatched = cp.vl["CGW1"]["CF_Gway_DrvSeatBeltSw"] == 0
+    ret.seatbeltUnlatched = False
 
     ret.wheelSpeeds = self.get_wheel_speeds(
       cp.vl["WHL_SPD11"]["WHL_SPD_FL"],
@@ -44,7 +37,7 @@ class CarState(CarStateBase):
     ret.steeringRateDeg = cp.vl["SAS11"]["SAS_Speed"]
     ret.yawRate = cp.vl["ESP12"]["YAW_RATE"]
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(
-      50, cp.vl["CGW1"]["CF_Gway_TurnSigLh"], cp.vl["CGW1"]["CF_Gway_TurnSigRh"])
+      50, False, False)
     ret.steeringTorque = cp.vl["MDPS12"]["CR_Mdps_StrColTq"]
     ret.steeringTorqueEps = cp.vl["MDPS12"]["CR_Mdps_OutTq"]
     ret.steeringPressed = abs(ret.steeringTorque) > STEER_THRESHOLD
@@ -73,7 +66,7 @@ class CarState(CarStateBase):
     ret.brakeHoldActive = cp.vl["TCS15"]["AVH_LAMP"] == 2 # 0 OFF, 1 ERROR, 2 ACTIVE, 3 READY
     ret.parkingBrake = cp.vl["TCS13"]["PBRAKE_ACT"] == 1
 
-    if self.CP.carFingerprint in (HYBRID_CAR | EV_CAR):
+    if self.CP.carFingerprint in (HYBRID_CAR):
       if self.CP.carFingerprint in HYBRID_CAR:
         ret.gas = cp.vl["E_EMS11"]["CR_Vcu_AccPedDep_Pos"] / 254.
       else:
@@ -85,24 +78,13 @@ class CarState(CarStateBase):
 
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
     # as this seems to be standard over all cars, but is not the preferred method.
-    if self.CP.carFingerprint in FEATURES["use_cluster_gears"]:
-      gear = cp.vl["CLU15"]["CF_Clu_Gear"]
-    elif self.CP.carFingerprint in FEATURES["use_tcu_gears"]:
-      gear = cp.vl["TCU12"]["CUR_GR"]
-    elif self.CP.carFingerprint in FEATURES["use_elect_gears"]:
-      gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
-    else:
-      gear = cp.vl["LVR12"]["CF_Lvr_Gear"]
+    gear = cp.vl["CLU15"]["CF_Clu_Gear"]
 
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
 
     if not self.CP.openpilotLongitudinalControl:
-      if self.CP.carFingerprint in FEATURES["use_fca"]:
-        ret.stockAeb = cp.vl["FCA11"]["FCA_CmdAct"] != 0
-        ret.stockFcw = cp.vl["FCA11"]["CF_VSM_Warn"] == 2
-      else:
-        ret.stockAeb = cp.vl["SCC12"]["AEB_CmdAct"] != 0
-        ret.stockFcw = cp.vl["SCC12"]["CF_VSM_Warn"] == 2
+      ret.stockAeb = cp.vl["SCC12"]["AEB_CmdAct"] != 0
+      ret.stockFcw = cp.vl["SCC12"]["CF_VSM_Warn"] == 2
 
     if self.CP.enableBsm:
       ret.leftBlindspot = cp.vl["LCA11"]["CF_Lca_IndLeft"] != 0
@@ -131,14 +113,8 @@ class CarState(CarStateBase):
 
       ("CF_Gway_DrvSeatBeltInd", "CGW4"),
 
-      ("CF_Gway_DrvSeatBeltSw", "CGW1"),
-      ("CF_Gway_DrvDrSw", "CGW1"),       # Driver Door
-      ("CF_Gway_AstDrSw", "CGW1"),       # Passenger door
       ("CF_Gway_RLDrSw", "CGW2"),        # Rear reft door
       ("CF_Gway_RRDrSw", "CGW2"),        # Rear right door
-      ("CF_Gway_TurnSigLh", "CGW1"),
-      ("CF_Gway_TurnSigRh", "CGW1"),
-      ("CF_Gway_ParkBrakeSw", "CGW1"),
 
       ("CYL_PRES", "ESP12"),
 
@@ -181,38 +157,11 @@ class CarState(CarStateBase):
       ("TCS15", 10),
       ("CLU11", 50),
       ("ESP12", 100),
-      ("CGW1", 10),
       ("CGW2", 5),
       ("CGW4", 5),
       ("WHL_SPD11", 50),
       ("SAS11", 100),
     ]
-
-    if not CP.openpilotLongitudinalControl:
-      signals += [
-        ("MainMode_ACC", "SCC11"),
-        ("VSetDis", "SCC11"),
-        ("SCCInfoDisplay", "SCC11"),
-        ("ACC_ObjDist", "SCC11"),
-        ("ACCMode", "SCC12"),
-      ]
-
-      checks += [
-        ("SCC11", 50),
-        ("SCC12", 50),
-      ]
-
-      if CP.carFingerprint in FEATURES["use_fca"]:
-        signals += [
-          ("FCA_CmdAct", "FCA11"),
-          ("CF_VSM_Warn", "FCA11"),
-        ]
-        checks.append(("FCA11", 50))
-      else:
-        signals += [
-          ("AEB_CmdAct", "SCC12"),
-          ("CF_VSM_Warn", "SCC12"),
-        ]
 
     if CP.enableBsm:
       signals += [
@@ -221,7 +170,7 @@ class CarState(CarStateBase):
       ]
       checks.append(("LCA11", 50))
 
-    if CP.carFingerprint in (HYBRID_CAR | EV_CAR):
+    if CP.carFingerprint in (HYBRID_CAR):
       if CP.carFingerprint in HYBRID_CAR:
         signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
       else:
@@ -237,18 +186,9 @@ class CarState(CarStateBase):
         ("EMS16", 100),
       ]
 
-    if CP.carFingerprint in FEATURES["use_cluster_gears"]:
-      signals.append(("CF_Clu_Gear", "CLU15"))
-      checks.append(("CLU15", 5))
-    elif CP.carFingerprint in FEATURES["use_tcu_gears"]:
-      signals.append(("CUR_GR", "TCU12"))
-      checks.append(("TCU12", 100))
-    elif CP.carFingerprint in FEATURES["use_elect_gears"]:
-      signals.append(("Elect_Gear_Shifter", "ELECT_GEAR"))
-      checks.append(("ELECT_GEAR", 20))
-    else:
-      signals.append(("CF_Lvr_Gear", "LVR12"))
-      checks.append(("LVR12", 100))
+
+    signals.append(("CF_Clu_Gear", "CLU15"))
+    checks.append(("CLU15", 5))
 
     return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 0)
 
