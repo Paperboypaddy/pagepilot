@@ -172,33 +172,6 @@ class CarState(CarStateBase):
       ("SAS11", 100),
     ]
 
-    if not CP.openpilotLongitudinalControl:
-      signals += [
-        ("MainMode_ACC", "SCC11"),
-        ("VSetDis", "SCC11"),
-        ("SCCInfoDisplay", "SCC11"),
-        ("ACC_ObjDist", "SCC11"),
-        ("ACCMode", "SCC12"),
-      ]
-
-      checks += [
-        ("SCC11", 50),
-        ("SCC12", 50),
-      ]
-
-
-      signals += [
-        ("AEB_CmdAct", "SCC12"),
-        ("CF_VSM_Warn", "SCC12"),
-      ]
-
-    if CP.enableBsm:
-      signals += [
-        ("CF_Lca_IndLeft", "LCA11"),
-        ("CF_Lca_IndRight", "LCA11"),
-      ]
-      checks.append(("LCA11", 50))
-
     if CP.carFingerprint in (HYBRID_CAR):
       if CP.carFingerprint in HYBRID_CAR:
         signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
