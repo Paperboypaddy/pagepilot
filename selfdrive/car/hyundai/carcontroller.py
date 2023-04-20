@@ -1,220 +1,116 @@
-# hard-forked from https://github.com/commaai/openpilot/tree/05b37552f3a38f914af41f44ccc7c633ad152a15/selfdrive/car/hyundai/carstate.py
-import copy
+# hard-forked from https://github.com/commaai/openpilot/tree/05b37552f3a38f914af41f44ccc7c633ad152a15/selfdrive/car/hyundai/carcontroller.py
 from cereal import car
+from common.realtime import DT_CTRL
+from common.numpy_fast import clip, interp
 from common.conversions import Conversions as CV
-from opendbc.can.parser import CANParser
-from opendbc.can.can_define import CANDefine
-from selfdrive.car.hyundai.values import DBC, STEER_THRESHOLD, HYBRID_CAR
-from selfdrive.car.interfaces import CarStateBase
+from selfdrive.car import apply_std_steer_torque_limits
+from selfdrive.car.hyundai.hyundaican import create_lkas11, create_clu11, create_lfahda_mfc, create_acc_commands, create_acc_opt, create_frt_radar_opt
+from selfdrive.car.hyundai.values import Buttons, CarControllerParams, CAR
+from opendbc.can.packer import CANPacker
+
+VisualAlert = car.CarControl.HUDControl.VisualAlert
+LongCtrlState = car.CarControl.Actuators.LongControlState
 
 
-class CarState(CarStateBase):
-  def __init__(self, CP):
-    super().__init__(CP)
-    can_define = CANDefine(DBC[CP.carFingerprint]["pt"])
-    self.shifter_values = can_define.dv["CLU15"]["CF_Clu_Gear"]
+def process_hud_alert(enabled, fingerprint, visual_alert, left_lane,
+                      right_lane, left_lane_depart, right_lane_depart):
+  sys_warning = (visual_alert in (VisualAlert.steerRequired, VisualAlert.ldw))
+
+  # initialize to no line visible
+  sys_state = 1
+  if left_lane and right_lane or sys_warning:  # HUD alert only display when LKAS status is active
+    sys_state = 3 if enabled or sys_warning else 4
+  elif left_lane:
+    sys_state = 5
+  elif right_lane:
+    sys_state = 6
+
+  # initialize to no warnings
+  left_lane_warning = 0
+  right_lane_warning = 0
+
+  return sys_warning, sys_state, left_lane_warning, right_lane_warning
 
 
-  def update(self, cp, cp_cam):
-    ret = car.CarState.new_message()
+class CarController():
+  def __init__(self, dbc_name, CP, VM):
+    self.p = CarControllerParams(CP)
+    self.packer = CANPacker(dbc_name)
 
-    ret.doorOpen = False
+    self.apply_steer_last = 0
+    self.car_fingerprint = CP.carFingerprint
+    self.steer_rate_limited = False
+    self.last_resume_frame = 0
+    self.accel = 0
 
-    ret.seatbeltUnlatched = False
+  def update(self, c, CS, frame, actuators, pcm_cancel_cmd, visual_alert, hud_speed,
+             left_lane, right_lane, left_lane_depart, right_lane_depart):
+    # Steering Torque
+    new_steer = int(round(actuators.steer * self.p.STEER_MAX))
+    apply_steer = apply_std_steer_torque_limits(new_steer, self.apply_steer_last, CS.out.steeringTorque, self.p)
+    self.steer_rate_limited = new_steer != apply_steer
 
-    ret.wheelSpeeds = self.get_wheel_speeds(
-      cp.vl["WHL_SPD11"]["WHL_SPD_FL"],
-      cp.vl["WHL_SPD11"]["WHL_SPD_FR"],
-      cp.vl["WHL_SPD11"]["WHL_SPD_RL"],
-      cp.vl["WHL_SPD11"]["WHL_SPD_RR"],
-    )
-    ret.vEgoRaw = (ret.wheelSpeeds.fl + ret.wheelSpeeds.fr + ret.wheelSpeeds.rl + ret.wheelSpeeds.rr) / 4.
-    ret.vEgo, ret.aEgo = self.update_speed_kf(ret.vEgoRaw)
+    if not c.latActive:
+      apply_steer = 0
 
-    ret.standstill = ret.vEgoRaw < 0.1
+    self.apply_steer_last = apply_steer
 
-    ret.steeringAngleDeg = cp.vl["SAS11"]["SAS_Angle"]
-    ret.steeringRateDeg = cp.vl["SAS11"]["SAS_Speed"]
-    ret.yawRate = cp.vl["ESP12"]["YAW_RATE"]
-    ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(
-      50, False, False)
-    ret.steeringTorque = cp.vl["MDPS12"]["CR_Mdps_StrColTq"]
-    ret.steeringTorqueEps = cp.vl["MDPS12"]["CR_Mdps_OutTq"]
-    ret.steeringPressed = abs(ret.steeringTorque) > STEER_THRESHOLD
-    ret.steerFaultTemporary = cp.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 or cp.vl["MDPS12"]["CF_Mdps_ToiFlt"] != 0
+    sys_warning, sys_state, left_lane_warning, right_lane_warning = \
+      process_hud_alert(c.enabled, self.car_fingerprint, visual_alert,
+                        left_lane, right_lane, left_lane_depart, right_lane_depart)
 
-    # cruise state
-    if self.CP.openpilotLongitudinalControl:
-      # These are not used for engage/disengage since openpilot keeps track of state using the buttons
-      ret.cruiseState.available = cp.vl["TCS13"]["ACCEnable"] == 0
-      ret.cruiseState.enabled = cp.vl["TCS13"]["ACC_REQ"] == 1
-      ret.cruiseState.standstill = False
-    else:
-      ret.cruiseState.available = cp.vl["SCC11"]["MainMode_ACC"] == 1
-      ret.cruiseState.enabled = cp.vl["SCC12"]["ACCMode"] != 0
-      ret.cruiseState.standstill = cp.vl["SCC11"]["SCCInfoDisplay"] == 4.
+    can_sends = []
 
-      if ret.cruiseState.enabled:
-        speed_conv = CV.MPH_TO_MS if cp.vl["CLU11"]["CF_Clu_SPEED_UNIT"] else CV.KPH_TO_MS
-        ret.cruiseState.speed = cp.vl["SCC11"]["VSetDis"] * speed_conv
-      else:
-        ret.cruiseState.speed = 0
+    # tester present - w/ no response (keeps radar disabled)
+    if CS.CP.openpilotLongitudinalControl:
+      if (frame % 100) == 0:
+        can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
-    # TODO: Find brake pressure
-    ret.brake = 0
-    ret.brakePressed = cp.vl["TCS13"]["DriverBraking"] != 0
-    ret.brakeHoldActive = cp.vl["TCS15"]["AVH_LAMP"] == 2 # 0 OFF, 1 ERROR, 2 ACTIVE, 3 READY
-    ret.parkingBrake = cp.vl["TCS13"]["PBRAKE_ACT"] == 1
+    can_sends.append(create_lkas11(self.packer, frame, self.car_fingerprint, apply_steer, c.latActive,
+                                   CS.lkas11, sys_warning, sys_state, c.enabled,
+                                   left_lane, right_lane,
+                                   left_lane_warning, right_lane_warning))
 
-    if self.CP.carFingerprint in (HYBRID_CAR):
-      if self.CP.carFingerprint in HYBRID_CAR:
-        ret.gas = cp.vl["E_EMS11"]["CR_Vcu_AccPedDep_Pos"] / 254.
-      else:
-        ret.gas = cp.vl["E_EMS11"]["Accel_Pedal_Pos"] / 254.
-      ret.gasPressed = ret.gas > 0
-    else:
-      ret.gas = cp.vl["EMS12"]["PV_AV_CAN"] / 100.
-      ret.gasPressed = bool(cp.vl["EMS16"]["CF_Ems_AclAct"])
+    if not CS.CP.openpilotLongitudinalControl:
+      if pcm_cancel_cmd:
+        can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.CANCEL))
+      elif CS.out.cruiseState.standstill:
+        # send resume at a max freq of 10Hz
+        if (frame - self.last_resume_frame) * DT_CTRL > 0.1:
+          # send 25 messages at a time to increases the likelihood of resume being accepted
+          can_sends.extend([create_clu11(self.packer, frame, CS.clu11, Buttons.RES_ACCEL)] * 25)
+          self.last_resume_frame = frame
 
-    # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
-    # as this seems to be standard over all cars, but is not the preferred method.
-    gear = cp.vl["CLU15"]["CF_Clu_Gear"]
+    if frame % 2 == 0 and CS.CP.openpilotLongitudinalControl:
+      lead_visible = False
+      accel = actuators.accel if c.longActive else 0
 
-    ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
+      jerk = clip(2.0 * (accel - CS.out.aEgo), -12.7, 12.7)
 
-    if not self.CP.openpilotLongitudinalControl:
-      ret.stockAeb = cp.vl["SCC12"]["AEB_CmdAct"] != 0
-      ret.stockFcw = cp.vl["SCC12"]["CF_VSM_Warn"] == 2
+      if accel < 0:
+        accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
 
-    if self.CP.enableBsm:
-      ret.leftBlindspot = cp.vl["LCA11"]["CF_Lca_IndLeft"] != 0
-      ret.rightBlindspot = cp.vl["LCA11"]["CF_Lca_IndRight"] != 0
+      accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
 
-    # save the entire LKAS11 and CLU11
-    self.lkas11 = copy.copy(cp_cam.vl["LKAS11"])
-    self.clu11 = copy.copy(cp.vl["CLU11"])
-    self.steer_state = cp.vl["MDPS12"]["CF_Mdps_ToiActive"]  # 0 NOT ACTIVE, 1 ACTIVE
-    self.brake_error = cp.vl["TCS13"]["ACCEnable"] != 0 # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
-    self.prev_cruise_buttons = self.cruise_buttons
-    self.cruise_buttons = cp.vl["CLU11"]["CF_Clu_CruiseSwState"]
+      stopping = (actuators.longControlState == LongCtrlState.stopping)
+      set_speed_in_units = hud_speed * (CV.MS_TO_MPH if CS.clu11["CF_Clu_SPEED_UNIT"] == 1 else CV.MS_TO_KPH)
+      can_sends.extend(create_acc_commands(self.packer, c.enabled, accel, jerk, int(frame / 2), lead_visible, set_speed_in_units, stopping))
+      self.accel = accel
 
-    return ret
+    # 20 Hz LFA MFA message
+    if frame % 5 == 0 and self.car_fingerprint in (CAR.IONIQ,):
+      can_sends.append(create_lfahda_mfc(self.packer, c.enabled))
 
-  @staticmethod
-  def get_can_parser(CP):
-    signals = [
-      # sig_name, sig_address
-      ("WHL_SPD_FL", "WHL_SPD11"),
-      ("WHL_SPD_FR", "WHL_SPD11"),
-      ("WHL_SPD_RL", "WHL_SPD11"),
-      ("WHL_SPD_RR", "WHL_SPD11"),
+    # 5 Hz ACC options
+    if frame % 20 == 0 and CS.CP.openpilotLongitudinalControl:
+      can_sends.extend(create_acc_opt(self.packer))
 
-      ("YAW_RATE", "ESP12"),
+    # 2 Hz front radar options
+    if frame % 50 == 0 and CS.CP.openpilotLongitudinalControl:
+      can_sends.append(create_frt_radar_opt(self.packer))
 
-      ("CF_Gway_DrvSeatBeltInd", "CGW4"),
+    new_actuators = actuators.copy()
+    new_actuators.steer = apply_steer / self.p.STEER_MAX
+    new_actuators.accel = self.accel
 
-      ("CF_Gway_RLDrSw", "CGW2"),        # Rear reft door
-      ("CF_Gway_RRDrSw", "CGW2"),        # Rear right door
-
-      ("CYL_PRES", "ESP12"),
-
-      ("CF_Clu_CruiseSwState", "CLU11"),
-      ("CF_Clu_CruiseSwMain", "CLU11"),
-      ("CF_Clu_SldMainSW", "CLU11"),
-      ("CF_Clu_ParityBit1", "CLU11"),
-      ("CF_Clu_VanzDecimal" , "CLU11"),
-      ("CF_Clu_Vanz", "CLU11"),
-      ("CF_Clu_SPEED_UNIT", "CLU11"),
-      ("CF_Clu_DetentOut", "CLU11"),
-      ("CF_Clu_RheostatLevel", "CLU11"),
-      ("CF_Clu_CluInfo", "CLU11"),
-      ("CF_Clu_AmpInfo", "CLU11"),
-      ("CF_Clu_AliveCnt1", "CLU11"),
-
-      ("ACCEnable", "TCS13"),
-      ("ACC_REQ", "TCS13"),
-      ("DriverBraking", "TCS13"),
-      ("StandStill", "TCS13"),
-      ("PBRAKE_ACT", "TCS13"),
-
-      ("ESC_Off_Step", "TCS15"),
-      ("AVH_LAMP", "TCS15"),
-
-      ("CR_Mdps_StrColTq", "MDPS12"),
-      ("CF_Mdps_ToiActive", "MDPS12"),
-      ("CF_Mdps_ToiUnavail", "MDPS12"),
-      ("CF_Mdps_ToiFlt", "MDPS12"),
-      ("CR_Mdps_OutTq", "MDPS12"),
-
-      ("SAS_Angle", "SAS11"),
-      ("SAS_Speed", "SAS11"),
-    ]
-
-    checks = [
-      # address, frequency
-      ("MDPS12", 50),
-      ("TCS13", 50),
-      ("TCS15", 10),
-      ("CLU11", 50),
-      ("ESP12", 100),
-      ("CGW2", 5),
-      ("CGW4", 5),
-      ("WHL_SPD11", 50),
-      ("SAS11", 100),
-    ]
-
-    if CP.enableBsm:
-      signals += [
-        ("CF_Lca_IndLeft", "LCA11"),
-        ("CF_Lca_IndRight", "LCA11"),
-      ]
-      checks.append(("LCA11", 50))
-
-    if CP.carFingerprint in (HYBRID_CAR):
-      if CP.carFingerprint in HYBRID_CAR:
-        signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
-      else:
-        signals.append(("Accel_Pedal_Pos", "E_EMS11"))
-      checks.append(("E_EMS11", 50))
-    else:
-      signals += [
-        ("PV_AV_CAN", "EMS12"),
-        ("CF_Ems_AclAct", "EMS16"),
-      ]
-      checks += [
-        ("EMS12", 100),
-        ("EMS16", 100),
-      ]
-
-
-    signals.append(("CF_Clu_Gear", "CLU15"))
-    checks.append(("CLU15", 5))
-
-    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 0)
-
-  @staticmethod
-  def get_cam_can_parser(CP):
-    signals = [
-      # sig_name, sig_address
-      ("CF_Lkas_LdwsActivemode", "LKAS11"),
-      ("CF_Lkas_LdwsSysState", "LKAS11"),
-      ("CF_Lkas_SysWarning", "LKAS11"),
-      ("CF_Lkas_LdwsLHWarning", "LKAS11"),
-      ("CF_Lkas_LdwsRHWarning", "LKAS11"),
-      ("CF_Lkas_HbaLamp", "LKAS11"),
-      ("CF_Lkas_FcwBasReq", "LKAS11"),
-      ("CF_Lkas_HbaSysState", "LKAS11"),
-      ("CF_Lkas_FcwOpt", "LKAS11"),
-      ("CF_Lkas_HbaOpt", "LKAS11"),
-      ("CF_Lkas_FcwSysState", "LKAS11"),
-      ("CF_Lkas_FcwCollisionWarning", "LKAS11"),
-      ("CF_Lkas_FusionState", "LKAS11"),
-      ("CF_Lkas_FcwOpt_USM", "LKAS11"),
-      ("CF_Lkas_LdwsOpt_USM", "LKAS11"),
-    ]
-
-    checks = [
-      ("LKAS11", 100)
-    ]
-
-    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 2)
+    return new_actuators, can_sends
