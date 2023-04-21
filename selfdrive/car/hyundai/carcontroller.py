@@ -70,9 +70,8 @@ class CarController():
       if (frame % 100) == 0:
         can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
-    can_sends.append(create_lkas11(self.packer, frame, self.car_fingerprint, apply_steer, c.latActive,
-                                   CS.lkas11, sys_warning, sys_state, c.enabled,
-                                   left_lane, right_lane,
+    can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,
+                                   sys_warning, sys_state,
                                    left_lane_warning, right_lane_warning))
 
     if not CS.CP.openpilotLongitudinalControl:
