@@ -66,51 +66,51 @@ class CarController():
     can_sends = []
 
     # tester present - w/ no response (keeps radar disabled)
-    if CS.CP.openpilotLongitudinalControl:
-      if (frame % 100) == 0:
-        can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
+    #if CS.CP.openpilotLongitudinalControl:
+    #  if (frame % 100) == 0:
+    #    can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
     can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,
                                    sys_warning, sys_state,
                                    left_lane_warning, right_lane_warning))
 
-    if not CS.CP.openpilotLongitudinalControl:
-      if pcm_cancel_cmd:
-        can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.CANCEL))
-      elif CS.out.cruiseState.standstill:
-        # send resume at a max freq of 10Hz
-        if (frame - self.last_resume_frame) * DT_CTRL > 0.1:
-          # send 25 messages at a time to increases the likelihood of resume being accepted
-          can_sends.extend([create_clu11(self.packer, frame, CS.clu11, Buttons.RES_ACCEL)] * 25)
-          self.last_resume_frame = frame
+    ##if not CS.CP.openpilotLongitudinalControl:
+    ##  if pcm_cancel_cmd:
+    ##    can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.CANCEL))
+    ##  elif CS.out.cruiseState.standstill:
+    ##    # send resume at a max freq of 10Hz
+    ##    if (frame - self.last_resume_frame) * DT_CTRL > 0.1:
+    ##      # send 25 messages at a time to increases the likelihood of resume being accepted
+    ##      can_sends.extend([create_clu11(self.packer, frame, CS.clu11, Buttons.RES_ACCEL)] * 25)
+    ##      self.last_resume_frame = frame
 
-    if frame % 2 == 0 and CS.CP.openpilotLongitudinalControl:
-      lead_visible = False
-      accel = actuators.accel if c.longActive else 0
+    ##if frame % 2 == 0 and CS.CP.openpilotLongitudinalControl:
+    ##  lead_visible = False
+    ##  accel = actuators.accel if c.longActive else 0
 
-      jerk = clip(2.0 * (accel - CS.out.aEgo), -12.7, 12.7)
+    ##  jerk = clip(2.0 * (accel - CS.out.aEgo), -12.7, 12.7)
 
-      if accel < 0:
-        accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
+    ##  if accel < 0:
+    ##    accel = interp(accel - CS.out.aEgo, [-1.0, -0.5], [2 * accel, accel])
 
-      accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
+    ##  accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
 
-      stopping = (actuators.longControlState == LongCtrlState.stopping)
-      set_speed_in_units = hud_speed * (CV.MS_TO_MPH if CS.clu11["CF_Clu_SPEED_UNIT"] == 1 else CV.MS_TO_KPH)
-      can_sends.extend(create_acc_commands(self.packer, c.enabled, accel, jerk, int(frame / 2), lead_visible, set_speed_in_units, stopping))
-      self.accel = accel
+    ##  stopping = (actuators.longControlState == LongCtrlState.stopping)
+    ##  set_speed_in_units = hud_speed * (CV.MS_TO_MPH if CS.clu11["CF_Clu_SPEED_UNIT"] == 1 else CV.MS_TO_KPH)
+    ##  can_sends.extend(create_acc_commands(self.packer, c.enabled, accel, jerk, int(frame / 2), lead_visible, set_speed_in_units, stopping))
+    ##  self.accel = accel
 
     # 20 Hz LFA MFA message
     if frame % 5 == 0 and self.car_fingerprint in (CAR.IONIQ,):
       can_sends.append(create_lfahda_mfc(self.packer, c.enabled))
 
     # 5 Hz ACC options
-    if frame % 20 == 0 and CS.CP.openpilotLongitudinalControl:
-      can_sends.extend(create_acc_opt(self.packer))
+    ##if frame % 20 == 0 and CS.CP.openpilotLongitudinalControl:
+    ##  can_sends.extend(create_acc_opt(self.packer))
 
     # 2 Hz front radar options
-    if frame % 50 == 0 and CS.CP.openpilotLongitudinalControl:
-      can_sends.append(create_frt_radar_opt(self.packer))
+    #if frame % 50 == 0 and CS.CP.openpilotLongitudinalControl:
+    #  can_sends.append(create_frt_radar_opt(self.packer))
 
     new_actuators = actuators.copy()
     new_actuators.steer = apply_steer / self.p.STEER_MAX
