@@ -4,7 +4,7 @@ from common.realtime import DT_CTRL
 from common.numpy_fast import clip, interp
 from common.conversions import Conversions as CV
 from selfdrive.car import apply_std_steer_torque_limits
-from selfdrive.car.hyundai.hyundaican import create_lkas11, create_clu11, create_lfahda_mfc, create_acc_commands, create_acc_opt, create_frt_radar_opt
+from selfdrive.car.hyundai.hyundaican import create_lkas11
 from selfdrive.car.hyundai.values import Buttons, CarControllerParams, CAR
 from opendbc.can.packer import CANPacker
 
@@ -70,9 +70,7 @@ class CarController():
     #  if (frame % 100) == 0:
     #    can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
-    can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,
-                                   sys_warning, sys_state,
-                                   left_lane_warning, right_lane_warning))
+    can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,))
     print(f"DEBUG: can_sends = {can_sends}")
 
 
