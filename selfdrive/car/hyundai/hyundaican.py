@@ -4,18 +4,18 @@ from selfdrive.car.hyundai.values import CAR
 
 hyundai_checksum = crcmod.mkCrcFun(0x11D, initCrc=0xFD, rev=False, xorOut=0xdf)
 
-def create_lkas11(packer, frame, car_fingerprint, apply_steer, steer_req,
-                  lkas11, sys_warning, sys_state, enabled,
-                  left_lane, right_lane,
+def create_lkas11(packer, frame, apply_steer, steer_req,
+                  sys_warning, sys_state,
                   left_lane_depart, right_lane_depart):
-  values = lkas11
-  values["CF_Lkas_LdwsSysState"] = sys_state
-  values["CF_Lkas_SysWarning"] = 3 if sys_warning else 0
-  values["CF_Lkas_LdwsLHWarning"] = left_lane_depart
-  values["CF_Lkas_LdwsRHWarning"] = right_lane_depart
-  values["CR_Lkas_StrToqReq"] = apply_steer
-  values["CF_Lkas_ActToi"] = steer_req
-  values["CF_Lkas_MsgCount"] = frame % 0x10
+  values = {
+    "CF_Lkas_LdwsSysState": sys_state,
+    "CF_Lkas_SysWarning": 3 if sys_warning else 0,
+    "CF_Lkas_LdwsLHWarning": left_lane_depart,
+    "CF_Lkas_LdwsRHWarning": right_lane_depart,
+    "CR_Lkas_StrToqReq": apply_steer,
+    "CF_Lkas_ActToi": steer_req,
+    "CF_Lkas_MsgCount": frame % 0x10,
+  }
 
   dat = packer.make_can_msg("LKAS11", 0, values)[2]
 
