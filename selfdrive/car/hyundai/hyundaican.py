@@ -4,20 +4,14 @@ from selfdrive.car.hyundai.values import CAR
 
 hyundai_checksum = crcmod.mkCrcFun(0x11D, initCrc=0xFD, rev=False, xorOut=0xdf)
 
-def create_lkas11(packer, frame, apply_steer, steer_req,
-                  sys_warning, sys_state,
-                  left_lane_depart, right_lane_depart):
+def create_lkas11(packer, frame, apply_steer, steer_req,):
   values = {
-    "CF_Lkas_LdwsSysState": sys_state,
-    "CF_Lkas_SysWarning": 3 if sys_warning else 0,
-    "CF_Lkas_LdwsLHWarning": left_lane_depart,
-    "CF_Lkas_LdwsRHWarning": right_lane_depart,
     "CR_Lkas_StrToqReq": apply_steer,
     "CF_Lkas_ActToi": steer_req,
     "CF_Lkas_MsgCount": frame % 0x10,
   }
 
-  dat = packer.make_can_msg("LKAS11", 0, values)[2]
+  dat = packer.make_can_msg("LKAS11", 0, values)
 
   # Checksum of first 6 Bytes and last Byte as seen on 2018 Kia Stinger
   checksum = (sum(dat[:6]) + dat[7]) % 256
@@ -27,7 +21,7 @@ def create_lkas11(packer, frame, apply_steer, steer_req,
   return packer.make_can_msg("LKAS11", 0, values)
 
 
-def create_clu11(packer, frame, clu11, button):
+'''def create_clu11(packer, frame, clu11, button):
   values = clu11
   values["CF_Clu_CruiseSwState"] = button
   values["CF_Clu_AliveCnt1"] = frame % 0x10
@@ -120,3 +114,4 @@ def create_frt_radar_opt(packer):
     "CF_FCA_Equip_Front_Radar": 1,
   }
   return packer.make_can_msg("FRT_RADAR11", 0, frt_radar11_values)
+'''
