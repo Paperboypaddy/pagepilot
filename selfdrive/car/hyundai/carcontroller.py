@@ -73,6 +73,8 @@ class CarController():
     can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,
                                    sys_warning, sys_state,
                                    left_lane_warning, right_lane_warning))
+    print(f"DEBUG: can_sends = {can_sends}")
+
 
     ##if not CS.CP.openpilotLongitudinalControl:
     ##  if pcm_cancel_cmd:
@@ -101,8 +103,8 @@ class CarController():
     ##  self.accel = accel
 
     # 20 Hz LFA MFA message
-    if frame % 5 == 0 and self.car_fingerprint in (CAR.IONIQ,):
-      can_sends.append(create_lfahda_mfc(self.packer, c.enabled))
+    ##if frame % 5 == 0 and self.car_fingerprint in (CAR.IONIQ,):
+    ##  can_sends.append(create_lfahda_mfc(self.packer, c.enabled))
 
     # 5 Hz ACC options
     ##if frame % 20 == 0 and CS.CP.openpilotLongitudinalControl:
