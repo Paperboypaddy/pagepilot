@@ -14,7 +14,7 @@ def create_lkas11(packer, frame, apply_steer, steer_req,):
   dat = packer.make_can_msg("LKAS11", 0, values)
 
   # Checksum of first 6 Bytes and last Byte as seen on 2018 Kia Stinger
-  checksum = (sum(dat[:6]) + int(dat[7])) % 256
+  checksum = (sum([ord(b) for b in dat[:6]]) + ord(dat[7])) % 256
 
   values["CF_Lkas_Chksum"] = checksum
 
