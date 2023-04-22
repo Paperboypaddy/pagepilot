@@ -131,7 +131,7 @@ bool safety_setter_thread(std::vector<Panda *> pandas) {
     }
 
     LOGD("getting car vin");
-    std::string value_vin = p.get("CarVin");
+    std::string value_vin = "KMHC65LC6KU167257";
     if (value_vin.size() > 0) {
       // sanity check VIN format
       assert(value_vin.size() == 17);
