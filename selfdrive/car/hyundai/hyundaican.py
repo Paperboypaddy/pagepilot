@@ -1,6 +1,15 @@
 # hard-forked from https://github.com/commaai/openpilot/tree/05b37552f3a38f914af41f44ccc7c633ad152a15/selfdrive/car/hyundai/hyundaican.py
 import crcmod
+import datetime
+
 from selfdrive.car.hyundai.values import CAR
+
+
+def debug(message):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    now_milliseconds = int(now[-6:]) // 1000  # extract microseconds and convert to milliseconds
+    debug_message = f"[DEBUG] {now[:-6]}{now_milliseconds:03d}: {message}"
+    print(debug_message)
 
 hyundai_checksum = crcmod.mkCrcFun(0x11D, initCrc=0xFD, rev=False, xorOut=0xdf)
 
@@ -16,7 +25,7 @@ def create_lkas11(packer, frame, apply_steer, steer_req,):
   checksum = (sum(dat[:6]) + dat[7]) % 256
 
   values["CF_Lkas_Chksum"] = checksum
-  print(values)
+  debug(values)
 
   return packer.make_can_msg("LKAS11", 0, values)
 

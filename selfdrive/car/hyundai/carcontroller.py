@@ -1,4 +1,5 @@
 # hard-forked from https://github.com/commaai/openpilot/tree/05b37552f3a38f914af41f44ccc7c633ad152a15/selfdrive/car/hyundai/carcontroller.py
+import datetime
 from cereal import car
 from common.realtime import DT_CTRL
 from common.numpy_fast import clip, interp
@@ -11,6 +12,11 @@ from opendbc.can.packer import CANPacker
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 LongCtrlState = car.CarControl.Actuators.LongControlState
 
+def debug(message):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    now_milliseconds = int(now[-6:]) // 1000  # extract microseconds and convert to milliseconds
+    debug_message = f"[DEBUG] {now[:-6]}{now_milliseconds:03d}: {message}"
+    print(debug_message)
 
 def process_hud_alert(enabled, fingerprint, visual_alert, left_lane,
                       right_lane, left_lane_depart, right_lane_depart):
@@ -71,6 +77,7 @@ class CarController():
     #    can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
     can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,))
+    debug(can_sends)
 
 
     ##if not CS.CP.openpilotLongitudinalControl:
