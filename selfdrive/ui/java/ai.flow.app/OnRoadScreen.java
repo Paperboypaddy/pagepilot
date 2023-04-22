@@ -359,13 +359,6 @@ public class OnRoadScreen extends ScreenAdapter {
         logoTexture.setColor(1, 1, 1, 0.85f);
         infoTable.add(logoTexture).align(Align.top).size(110).padTop(35).padBottom(40);
 
-        infoTable.setVisible(!infoTable.isVisible());
-        cameraAlertBox.translate(-settingsBarWidth, 0, 0);
-        velocityTable.moveBy(settingsBarWidth/2f, 0);
-        alertTable.moveBy(settingsBarWidth/2f, 0);
-        maxCruiseTable.moveBy(settingsBarWidth, 0);
-        cameraAlertBox.update();
-
         stageFill.addActor(texImage);
         stageUI.addActor(velocityTable);
         stageUI.addActor(maxCruiseTable);
