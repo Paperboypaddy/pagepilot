@@ -130,41 +130,20 @@ class CarState(CarStateBase):
       ("AVH_LAMP", "TCS15"),
 
       ("CR_Mdps_StrColTq", "MDPS12"),
+      ("CF_Mdps_Def", "MDPS12"),
       ("CF_Mdps_ToiActive", "MDPS12"),
       ("CF_Mdps_ToiUnavail", "MDPS12"),
       ("CF_Mdps_ToiFlt", "MDPS12"),
+      ("CF_Mdps_MsgCount2", "MDPS12"),
+      ("CF_Mdps_Chksum2", "MDPS12"),
+      ("CF_Mdps_SErr", "MDPS12"),
+      ("CR_Mdps_StrTq", "MDPS12"),
+      ("CF_Mdps_FailStat", "MDPS12"),
       ("CR_Mdps_OutTq", "MDPS12"),
 
       ("SAS_Angle", "SAS11"),
       ("SAS_Speed", "SAS11"),
-    ]
 
-    checks = [
-      # address, frequency
-      ("MDPS12", 50),
-      ("TCS13", 50),
-      ("TCS15", 10),
-      ("CLU11", 50),
-      ("ESP12", 100),
-      ("CGW1", 10),
-      ("CGW2", 5),
-      ("CGW4", 5),
-      ("WHL_SPD11", 50),
-      ("SAS11", 100),
-    ]
-
-    signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
-    checks.append(("E_EMS11", 50))
-
-    signals.append(("CF_Clu_Gear", "CLU15"))
-    checks.append(("CLU15", 5))
-
-    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 0)
-
-  @staticmethod
-  def get_cam_can_parser(CP):
-    signals = [
-      # sig_name, sig_address
       ("CF_Lkas_LdwsActivemode", "LKAS11"),
       ("CF_Lkas_LdwsSysState", "LKAS11"),
       ("CF_Lkas_SysWarning", "LKAS11"),
@@ -183,7 +162,24 @@ class CarState(CarStateBase):
     ]
 
     checks = [
-      ("LKAS11", 100)
+      # address, frequency
+      ("MDPS12", 50),
+      ("TCS13", 50),
+      ("TCS15", 10),
+      ("CLU11", 50),
+      ("ESP12", 100),
+      ("CGW1", 10),
+      ("CGW2", 5),
+      ("CGW4", 5),
+      ("WHL_SPD11", 50),
+      ("SAS11", 100),
+      ("LKAS11", 100),
     ]
 
-    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 2)
+    signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
+    checks.append(("E_EMS11", 50))
+
+    signals.append(("CF_Clu_Gear", "CLU15"))
+    checks.append(("CLU15", 5))
+
+    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 0)
