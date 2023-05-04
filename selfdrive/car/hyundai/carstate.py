@@ -143,22 +143,6 @@ class CarState(CarStateBase):
 
       ("SAS_Angle", "SAS11"),
       ("SAS_Speed", "SAS11"),
-
-      ("CF_Lkas_LdwsActivemode", "LKAS11"),
-      ("CF_Lkas_LdwsSysState", "LKAS11"),
-      ("CF_Lkas_SysWarning", "LKAS11"),
-      ("CF_Lkas_LdwsLHWarning", "LKAS11"),
-      ("CF_Lkas_LdwsRHWarning", "LKAS11"),
-      ("CF_Lkas_HbaLamp", "LKAS11"),
-      ("CF_Lkas_FcwBasReq", "LKAS11"),
-      ("CF_Lkas_HbaSysState", "LKAS11"),
-      ("CF_Lkas_FcwOpt", "LKAS11"),
-      ("CF_Lkas_HbaOpt", "LKAS11"),
-      ("CF_Lkas_FcwSysState", "LKAS11"),
-      ("CF_Lkas_FcwCollisionWarning", "LKAS11"),
-      ("CF_Lkas_FusionState", "LKAS11"),
-      ("CF_Lkas_FcwOpt_USM", "LKAS11"),
-      ("CF_Lkas_LdwsOpt_USM", "LKAS11"),
     ]
 
     checks = [
@@ -173,7 +157,6 @@ class CarState(CarStateBase):
       ("CGW4", 5),
       ("WHL_SPD11", 50),
       ("SAS11", 100),
-      ("LKAS11", 100),
     ]
 
     signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
