@@ -86,95 +86,52 @@ class CarState(CarStateBase):
   @staticmethod
   def get_can_parser(CP):
     signals = [
-      # sig_name, sig_address
-      ("WHL_SPD_FL", "WHL_SPD11"),
-      ("WHL_SPD_FR", "WHL_SPD11"),
-      ("WHL_SPD_RL", "WHL_SPD11"),
-      ("WHL_SPD_RR", "WHL_SPD11"),
+    # sig_name, sig_address
+    ("WHL_SPD_FL", "WHL_SPD11"),
+    ("WHL_SPD_FR", "WHL_SPD11"),
+    ("WHL_SPD_RL", "WHL_SPD11"),
+    ("WHL_SPD_RR", "WHL_SPD11"),
 
-      ("YAW_RATE", "ESP12"),
+    ("YAW_RATE", "ESP12"),
 
-      ("CF_Gway_DrvSeatBeltInd", "CGW4"),
+    ("CF_Gway_DrvSeatBeltInd", "CGW4"),
 
-      ("CF_Gway_DrvSeatBeltSw", "CGW1"),
-      ("CF_Gway_DrvDrSw", "CGW1"),       # Driver Door
-      ("CF_Gway_AstDrSw", "CGW1"),       # Passenger door
-      ("CF_Gway_RLDrSw", "CGW2"),        # Rear reft door
-      ("CF_Gway_RRDrSw", "CGW2"),        # Rear right door
-      ("CF_Gway_TurnSigLh", "CGW1"),
-      ("CF_Gway_TurnSigRh", "CGW1"),
-      ("CF_Gway_ParkBrakeSw", "CGW1"),
+    ("CF_Gway_DrvSeatBeltSw", "CGW1"),
+    ("CF_Gway_DrvDrSw", "CGW1"),       # Driver Door
+    ("CF_Gway_AstDrSw", "CGW1"),       # Passenger door
+    ("CF_Gway_RLDrSw", "CGW2"),        # Rear left door
+    ("CF_Gway_RRDrSw", "CGW2"),        # Rear right door
+    ("CF_Gway_TurnSigLh", "CGW1"),
+    ("CF_Gway_TurnSigRh", "CGW1"),
+    ("CF_Gway_ParkBrakeSw", "CGW1"),
 
-      ("CYL_PRES", "ESP12"),
+    ("CF_Clu_CruiseSwState", "CLU11"),
 
-      ("CF_Clu_CruiseSwState", "CLU11"),
-      ("CF_Clu_CruiseSwMain", "CLU11"),
-      ("CF_Clu_SldMainSW", "CLU11"),
-      ("CF_Clu_ParityBit1", "CLU11"),
-      ("CF_Clu_VanzDecimal" , "CLU11"),
-      ("CF_Clu_Vanz", "CLU11"),
-      ("CF_Clu_SPEED_UNIT", "CLU11"),
-      ("CF_Clu_DetentOut", "CLU11"),
-      ("CF_Clu_RheostatLevel", "CLU11"),
-      ("CF_Clu_CluInfo", "CLU11"),
-      ("CF_Clu_AmpInfo", "CLU11"),
-      ("CF_Clu_AliveCnt1", "CLU11"),
+    ("ACCEnable", "TCS13"),
+    ("ACC_REQ", "TCS13"),
+    ("DriverBraking", "TCS13"),
+    ("StandStill", "TCS13"),
+    ("PBRAKE_ACT", "TCS13"),
 
-      ("ACCEnable", "TCS13"),
-      ("ACC_REQ", "TCS13"),
-      ("DriverBraking", "TCS13"),
-      ("StandStill", "TCS13"),
-      ("PBRAKE_ACT", "TCS13"),
+    ("AVH_LAMP", "TCS15"),
 
-      ("ESC_Off_Step", "TCS15"),
-      ("AVH_LAMP", "TCS15"),
+    ("CR_Mdps_StrColTq", "MDPS12"),
+    ("CF_Mdps_Def", "MDPS12"),
+    ("CF_Mdps_ToiActive", "MDPS12"),
+    ("CF_Mdps_ToiUnavail", "MDPS12"),
+    ("CF_Mdps_ToiFlt", "MDPS12"),
+    ("CR_Mdps_StrTq", "MDPS12"),
+    ("CR_Mdps_OutTq", "MDPS12"),
 
-      ("CR_Mdps_StrColTq", "MDPS12"),
-      ("CF_Mdps_Def", "MDPS12"),
-      ("CF_Mdps_ToiActive", "MDPS12"),
-      ("CF_Mdps_ToiUnavail", "MDPS12"),
-      ("CF_Mdps_ToiFlt", "MDPS12"),
-      ("CF_Mdps_MsgCount2", "MDPS12"),
-      ("CF_Mdps_Chksum2", "MDPS12"),
-      ("CF_Mdps_SErr", "MDPS12"),
-      ("CR_Mdps_StrTq", "MDPS12"),
-      ("CF_Mdps_FailStat", "MDPS12"),
-      ("CR_Mdps_OutTq", "MDPS12"),
+    ("SAS_Angle", "SAS11"),
+    ("SAS_Speed", "SAS11"),
 
-      ("SAS_Angle", "SAS11"),
-      ("SAS_Speed", "SAS11"),
+    ("CR_Vcu_AccPedDep_Pos", "E_EMS11"),
 
-      ("CF_Lkas_LdwsActivemode", "LKAS11"),
-      ("CF_Lkas_LdwsSysState", "LKAS11"),
-      ("CF_Lkas_SysWarning", "LKAS11"),
-      ("CF_Lkas_LdwsLHWarning", "LKAS11"),
-      ("CF_Lkas_LdwsRHWarning", "LKAS11"),
-      ("CF_Lkas_HbaLamp", "LKAS11"),
-      ("CF_Lkas_FcwBasReq", "LKAS11"),
-      ("CF_Lkas_HbaSysState", "LKAS11"),
-      ("CF_Lkas_FcwOpt", "LKAS11"),
-      ("CF_Lkas_HbaOpt", "LKAS11"),
-      ("CF_Lkas_FcwSysState", "LKAS11"),
-      ("CF_Lkas_FcwCollisionWarning", "LKAS11"),
-      ("CF_Lkas_FusionState", "LKAS11"),
-      ("CF_Lkas_FcwOpt_USM", "LKAS11"),
-      ("CF_Lkas_LdwsOpt_USM", "LKAS11"),
-    ]
+    ("CF_Clu_Gear", "CLU15"),
+  ]
 
-    checks = [
-      # address, frequency
-      ("MDPS12", 50),
-      ("TCS13", 50),
-      ("TCS15", 10),
-      ("CLU11", 50),
-      ("ESP12", 100),
-      ("CGW1", 10),
-      ("CGW2", 5),
-      ("CGW4", 5),
-      ("WHL_SPD11", 50),
-      ("SAS11", 100),
-      ("LKAS11", 100),
-    ]
+    checks = []
 
     signals.append(("CR_Vcu_AccPedDep_Pos", "E_EMS11"))
     checks.append(("E_EMS11", 50))
