@@ -76,9 +76,9 @@ class CarController():
     #  if (frame % 100) == 0:
     #    can_sends.append([0x7D0, 0, b"\x02\x3E\x80\x00\x00\x00\x00\x00", 0])
 
-    if frame % 2 == 0:
-      can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,))
-      debug(can_sends)
+    
+    can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,))
+    debug(can_sends)
 
 
     ##if not CS.CP.openpilotLongitudinalControl:
