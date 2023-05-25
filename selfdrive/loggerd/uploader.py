@@ -125,7 +125,7 @@ class Uploader():
             self.immediate_size += os.path.getsize(fn)
         except OSError:
           pass
-        
+
         yield (name, key, fn)
 
   def next_file_to_upload(self):
@@ -144,15 +144,20 @@ class Uploader():
   def do_upload(self, key, fn):
     try:
       if self.credentials is None:
-        self.credentials = self.api.get_credentials()
+        ##self.credentials = self.api.get_credentials()
 
-        access_key = self.credentials["access_key"]
-        secret_access_key = self.credentials["secret_access_key"]
-        session_token = self.credentials["session_token"]
+        #access_key = self.credentials["access_key"]
+        #secret_access_key = self.credentials["secret_access_key"]
+        #session_token = self.credentials["session_token"]
+
+        access_key = '004f072c6a16bea0000000003'
+        secret_access_key = 'K004japAKTpEbzWem54+ZM+ISMeVz3A'
+        session_token = None
 
 
         self.s3=boto3.client(
             's3',
+            endpoint_url = 'https://s3.us-west-004.backblazeb2.com',
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_access_key,
             aws_session_token=session_token,
@@ -272,12 +277,12 @@ def uploader_fn(exit_event):
   while not exit_event.is_set():
     sm.update(0)
     offroad = params.get_bool("IsOffroad")
-    
+
     # Flowpilot stores a single long video. Need to make and sync segments
     # with respective route segments.
     if offroad:
       segment_sync_videos()
-   
+
     d = uploader.next_file_to_upload()
     if d is None:  # Nothing to upload
       if allow_sleep:
