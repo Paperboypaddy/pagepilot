@@ -6,7 +6,6 @@ import ai.flow.android.vision.SNPEModelRunner;
 import ai.flow.app.FlowUI;
 import ai.flow.common.ParamsInterface;
 import ai.flow.common.Path;
-import ai.flow.common.transformations.Camera;
 import ai.flow.hardware.HardwareManager;
 import ai.flow.launcher.Launcher;
 import ai.flow.modeld.*;
@@ -28,7 +27,6 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentTransaction;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidFragmentApplication;
-import com.termux.shared.termux.TermuxConstants;
 import org.acra.ACRA;
 import org.acra.BuildConfig;
 import org.acra.ErrorReporter;
@@ -83,11 +81,11 @@ public class AndroidLauncher extends FragmentActivity implements AndroidFragment
 		PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ai.flow.app::wakelock");
 
 		// acquiring wakelock causes crash on some devices.
-		try {
-			wakeLock.acquire();
-		} catch (Exception e){
-			System.err.println(e);
-		}
+		//try {
+		//	wakeLock.acquire();
+		//} catch (Exception e){
+		//	System.err.println(e);
+		//}
 
 		// tune system for max throughput. Does this really help ?
 		//if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -109,7 +107,7 @@ public class AndroidLauncher extends FragmentActivity implements AndroidFragment
 
 		AndroidApplicationConfiguration configuration = new AndroidApplicationConfiguration();
 		CameraManager cameraManager = new CameraManager(getApplication().getApplicationContext(), 20);
-		SensorManager sensorManager = new SensorManager(appContext, "sensorEvents", 50);
+		SensorManager sensorManager = new SensorManager(appContext, 100);
 		sensors = new HashMap<String, SensorInterface>() {{
 			put("roadCamera", cameraManager);
 			put("motionSensors", sensorManager);
