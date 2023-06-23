@@ -21,6 +21,7 @@ class Keyboard:
     self.axes_values = {'gb': 0., 'steer': 0.}
     self.axes_order = ['gb', 'steer']
     self.cancel = False
+    self.set = False
 
   def update(self):
     key = self.kb.getch().lower()
@@ -43,6 +44,7 @@ class Joystick:
     # TODO: find a way to get this from API, perhaps "inputs" doesn't support it
     if gamepad:
       self.cancel_button = 'BTN_NORTH'  # (BTN_NORTH=X, ABS_RZ=Right Trigger)
+      self.set_button = 'BTN_SOUTH'
       accel_axis = 'ABS_Y'
       steer_axis = 'ABS_RX'
     else:
@@ -54,6 +56,7 @@ class Joystick:
     self.axes_values = {accel_axis: 0., steer_axis: 0.}
     self.axes_order = [accel_axis, steer_axis]
     self.cancel = False
+    self.set = False
 
   def update(self):
     joystick_event = get_gamepad()[0]
@@ -63,6 +66,9 @@ class Joystick:
         self.cancel = True
       elif event[1] == 0:   # state 0 is falling edge
         self.cancel = False
+    elif event[0] == self.set_button:
+      if event[1] == 1:
+        self.set = not self.set
     elif event[0] in self.axes_values:
       self.max_axis_value[event[0]] = max(event[1], self.max_axis_value[event[0]])
       self.min_axis_value[event[0]] = min(event[1], self.min_axis_value[event[0]])
@@ -80,7 +86,7 @@ def send_thread(joystick):
   while 1:
     dat = messaging.new_message('testJoystick')
     dat.testJoystick.axes = [joystick.axes_values[a] for a in joystick.axes_order]
-    dat.testJoystick.buttons = [joystick.cancel]
+    dat.testJoystick.buttons = [joystick.cancel, joystick.set]
     joystick_sock.send(dat.to_bytes())
     print('\n' + ', '.join(f'{name}: {round(v, 3)}' for name, v in joystick.axes_values.items()))
     if "WEB" in os.environ:

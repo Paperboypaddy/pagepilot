@@ -1,17 +1,13 @@
 # hard-forked from https://github.com/commaai/openpilot/tree/05b37552f3a38f914af41f44ccc7c633ad152a15/selfdrive/car/toyota/radar_interface.py
 from opendbc.can.parser import CANParser
 from cereal import car
-from selfdrive.car.toyota.values import NO_DSU_CAR, DBC, TSS2_CAR
+from selfdrive.car.toyota.values import DBC
 from selfdrive.car.interfaces import RadarInterfaceBase
 
 
 def _create_radar_can_parser(car_fingerprint):
-  if car_fingerprint in TSS2_CAR:
-    RADAR_A_MSGS = list(range(0x180, 0x190))
-    RADAR_B_MSGS = list(range(0x190, 0x1a0))
-  else:
-    RADAR_A_MSGS = list(range(0x210, 0x220))
-    RADAR_B_MSGS = list(range(0x220, 0x230))
+  RADAR_A_MSGS = list(range(0x210, 0x220))
+  RADAR_B_MSGS = list(range(0x220, 0x230))
 
   msg_a_n = len(RADAR_A_MSGS)
   msg_b_n = len(RADAR_B_MSGS)
@@ -30,12 +26,8 @@ class RadarInterface(RadarInterfaceBase):
     self.track_id = 0
     self.radar_ts = CP.radarTimeStep
 
-    if CP.carFingerprint in TSS2_CAR:
-      self.RADAR_A_MSGS = list(range(0x180, 0x190))
-      self.RADAR_B_MSGS = list(range(0x190, 0x1a0))
-    else:
-      self.RADAR_A_MSGS = list(range(0x210, 0x220))
-      self.RADAR_B_MSGS = list(range(0x220, 0x230))
+    self.RADAR_A_MSGS = list(range(0x210, 0x220))
+    self.RADAR_B_MSGS = list(range(0x220, 0x230))
 
     self.valid_cnt = {key: 0 for key in self.RADAR_A_MSGS}
 
@@ -45,7 +37,7 @@ class RadarInterface(RadarInterfaceBase):
 
     # No radar dbc for cars without DSU which are not TSS 2.0
     # TODO: make a adas dbc file for dsu-less models
-    self.no_radar = CP.carFingerprint in NO_DSU_CAR and CP.carFingerprint not in TSS2_CAR
+    self.no_radar = True
 
   def update(self, can_strings):
     if self.no_radar:

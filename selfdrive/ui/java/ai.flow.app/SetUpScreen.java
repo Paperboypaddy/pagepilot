@@ -25,21 +25,21 @@ public class SetUpScreen extends ScreenAdapter {
             return;
         }
 
-        if (!params.exists("UserToken")) {
-            appContext.setScreen(new RegisterScreen(appContext));
-            return;
-        }
+        // if (!params.exists("UserToken")) {
+        //     appContext.setScreen(new RegisterScreen(appContext));
+        //     return;
+        // }
 
         if (!params.existsAndCompare("CompletedTrainingVersion", true)){
             appContext.setScreen(new TrainingScreen(appContext));
             return;
         }
 
-        if (!params.exists(fcamIntrinsicParam)){
-           appContext.launcher.startSensorD();
-           appContext.setScreen(new CalibrationInfo(appContext, false));
-           return;
-        }
+        // if (!params.exists(fcamIntrinsicParam)){
+        //    appContext.launcher.startSensorD();
+        //    appContext.setScreen(new CalibrationInfo(appContext, false));
+        //    return;
+        // }
 
         appContext.launcher.startAllD();
         appContext.setScreen(new IntroScreen(appContext));
