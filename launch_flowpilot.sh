@@ -21,23 +21,6 @@ export FINGERPRINT="HYUNDAI IONIQ HYBRID 2017-2019"
 export USE_SNPE="1" # only works for snapdragon devices.
 
 
-if ! command -v tmux &> /dev/null
-then
-    echo "tmux could not be found, installing.."
-    sudo apt-get update
-    sudo apt-get install tmux
-    echo "set -g mouse on" >> .tmux.conf # enable mouse scrolling in tmux
-fi
-
-
-if pgrep -x "flowinit" > /dev/null
-    then
-        echo "another instance of flowinit is already running"
-        exit
-    else
-        # start a tmux pane
-        tmux new-session -d -s "flowpilot" "scons && flowinit"
-        tmux attach -t flowpilot
-fi
+scons && flowinit
 
 while true; do sleep 1; done

@@ -22,11 +22,11 @@ class CarInterface(CarInterfaceBase):
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint)
 
     ret.carName = "hyundai"
-    ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.allOutput, 0)]
+    ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.allOutput)]
     ret.radarOffCan = RADAR_START_ADDR not in fingerprint[1]
 
     # WARNING: disabling radar also disables AEB (and we show the same warning on the instrument cluster as if you manually disabled AEB)
-    ret.openpilotLongitudinalControl = True
+    ret.openpilotLongitudinalControl = False
 
     ret.pcmCruise = not ret.openpilotLongitudinalControl
 
@@ -40,7 +40,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 0.4
     tire_stiffness_factor = 1.
 
-    ret.stoppingControl = True
+    ret.stoppingControl = False
     ret.vEgoStopping = 1.0
 
     ret.longitudinalTuning.kpV = [0.1]
@@ -62,12 +62,12 @@ class CarInterface(CarInterfaceBase):
       raise ValueError(f"Unsupported car: {candidate}")
 
     # these cars require a special panda safety mode due to missing counters and checksums in the messages
-    if candidate in LEGACY_SAFETY_MODE_CAR:
-      ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiLegacy)]
+    # if candidate in LEGACY_SAFETY_MODE_CAR:
+    #   ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiLegacy)]
 
     # set appropriate safety param for gas signal
-    if candidate in HYBRID_CAR:
-      ret.safetyConfigs[0].safetyParam = 2
+    # if candidate in HYBRID_CAR:
+    #   ret.safetyConfigs[0].safetyParam = 2
 
     ret.centerToFront = ret.wheelbase * 0.4
 

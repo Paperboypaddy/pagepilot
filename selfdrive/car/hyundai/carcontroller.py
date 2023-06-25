@@ -78,7 +78,6 @@ class CarController():
 
     
     can_sends.append(create_lkas11(self.packer, frame, apply_steer, c.latActive,))
-    debug(can_sends)
 
 
     ##if not CS.CP.openpilotLongitudinalControl:

@@ -25,7 +25,6 @@ def create_lkas11(packer, frame, apply_steer, steer_req,):
   checksum = (sum(dat[:6]) + dat[7]) % 256
 
   values["CF_Lkas_Chksum"] = checksum
-  debug(values)
 
   return packer.make_can_msg("LKAS11", 0, values)
 
