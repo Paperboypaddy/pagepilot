@@ -165,4 +165,4 @@ class CarState(CarStateBase):
     signals.append(("CF_Clu_Gear", "CLU15"))
     checks.append(("CLU15", 5))
 
-    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 0)
+    return CANParser(DBC[CP.carFingerprint]["pt"], signals, checks, 2)

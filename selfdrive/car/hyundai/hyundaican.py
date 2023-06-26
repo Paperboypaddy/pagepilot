@@ -20,13 +20,13 @@ def create_lkas11(packer, frame, apply_steer, steer_req,):
     "CF_Lkas_MsgCount": frame % 0x10,
   }
 
-  dat = packer.make_can_msg("LKAS11", 0, values)[2]
+  dat = packer.make_can_msg("LKAS11", 2, values)[2]
 
   checksum = (sum(dat[:6]) + dat[7]) % 256
 
   values["CF_Lkas_Chksum"] = checksum
 
-  return packer.make_can_msg("LKAS11", 0, values)
+  return packer.make_can_msg("LKAS11", 2, values)
 
 
 '''def create_clu11(packer, frame, clu11, button):
