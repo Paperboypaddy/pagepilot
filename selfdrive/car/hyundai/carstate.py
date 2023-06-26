@@ -46,11 +46,10 @@ class CarState(CarStateBase):
     ret.steerFaultTemporary = cp.vl["MDPS12"]["CF_Mdps_ToiUnavail"] != 0 or cp.vl["MDPS12"]["CF_Mdps_ToiFlt"] != 0
 
     # cruise state
-    if self.CP.openpilotLongitudinalControl:
-      # These are not used for engage/disengage since openpilot keeps track of state using the buttons
-      ret.cruiseState.available = cp.vl["TCS13"]["ACCEnable"] == 0
-      ret.cruiseState.enabled = cp.vl["TCS13"]["ACC_REQ"] == 1
-      ret.cruiseState.standstill = False
+    # These are not used for engage/disengage since openpilot keeps track of state using the buttons
+    ret.cruiseState.available = cp.vl["TCS13"]["ACCEnable"] == 0
+    ret.cruiseState.enabled = cp.vl["TCS13"]["ACC_REQ"] == 1
+    ret.cruiseState.standstill = False
 
     # TODO: Find brake pressure
     ret.brake = 0
