@@ -48,7 +48,7 @@ class CarState(CarStateBase):
     # cruise state
     # These are not used for engage/disengage since openpilot keeps track of state using the buttons
     ret.cruiseState.available = cp.vl["TCS13"]["ACCEnable"] == 0
-    ret.cruiseState.enabled = True
+    ret.cruiseState.enabled = cp.vl["TCS13"]["ACC_REQ"] == 1
     ret.cruiseState.standstill = False
 
     # TODO: Find brake pressure
