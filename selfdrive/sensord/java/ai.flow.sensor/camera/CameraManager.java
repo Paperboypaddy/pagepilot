@@ -159,7 +159,15 @@ public class CameraManager extends SensorInterface implements Runnable {
                 continue;
             }
             start = System.currentTimeMillis();
-            capture.read(frame);
+            // Read the next video frame.
+            boolean isFrameRead = capture.read(frame);
+
+            // If the end of the video is reached, reset to the first frame.
+            if (!isFrameRead) {
+                capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+                // Ensure the frame is read after resetting the video position.
+                capture.read(frame);
+            }
             end = System.currentTimeMillis();
             frameID += 1;
             processFrame(frame);
