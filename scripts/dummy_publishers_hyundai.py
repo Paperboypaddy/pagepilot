@@ -31,7 +31,7 @@ def can_function(pm, speed, angle, idx, cruise_button, is_engaged):
   msg.append(packer.make_can_msg("CLU15", 2, {"CF_Clu_Gear": 8}))
   msg.append(packer.make_can_msg("CGW1", 2, {"CF_Gway_DrvSeatBeltSw": 1}))
   msg.append(packer.make_can_msg("SAS11", 2, {"SAS_Angle": angle}))
-  msg.append(packer.make_can_msg("TCS13", 2, {"StandStill": 1 if speed >= 1.0 else 0, "ACCEnable": 0,"ACC_REQ": 0, "DriverBraking": 0, "PBRAKE_ACT": 0}))
+  msg.append(packer.make_can_msg("TCS13", 2, {"StandStill": 1 if speed >= 1.0 else 0, "ACCEnable": 0,"ACC_REQ": 1, "DriverBraking": 0, "PBRAKE_ACT": 0}))
   msg.append(packer.make_can_msg("TCS15", 2, {"AVH_LAMP": 0}))
   msg.append(packer.make_can_msg("MDPS12", 2, {"CF_Mdps_ToiUnavail": 0, "CF_Mdps_ToiFlt": 0}))
   msg.append(packer.make_can_msg("ESP12", 2, {})) # Blank for now
@@ -63,7 +63,7 @@ def panda_state_function(exit_event: threading.Event):
       'ignitionLine': True,
       'pandaType': "blackPanda",
       'controlsAllowed': True,
-      'safetyModel': 'allOutput',
+      'safetyModel': 'hyundai',
     }
     pm.send('pandaStates', dat)
     time.sleep(0.5)
